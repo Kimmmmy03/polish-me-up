@@ -128,3 +128,92 @@
     @apply font-sans;
   }
 }
+
+/* ─────────────────────── React Bits-style animations ───────────────────── */
+
+@keyframes pmu-gradient-shift {
+  0%, 100% { background-position: 0% 50%; }
+  50%      { background-position: 100% 50%; }
+}
+
+@keyframes pmu-shine {
+  0%   { background-position: 200% center; }
+  100% { background-position: -200% center; }
+}
+
+@keyframes pmu-blur-in {
+  from { opacity: 0; filter: blur(10px); transform: translateY(10px); }
+  to   { opacity: 1; filter: blur(0);    transform: translateY(0); }
+}
+
+@keyframes pmu-sparkle-drift {
+  0%   { transform: translate(0, 0) scale(1);   opacity: 0; }
+  10%  { opacity: 1; }
+  90%  { opacity: 1; }
+  100% { transform: translate(var(--dx, 20px), -120px) scale(0.4); opacity: 0; }
+}
+
+@keyframes pmu-float-soft {
+  0%, 100% { transform: translateY(0); }
+  50%      { transform: translateY(-8px); }
+}
+
+@keyframes pmu-pop-in {
+  0%   { opacity: 0; transform: scale(0.8); }
+  60%  { opacity: 1; transform: scale(1.05); }
+  100% { opacity: 1; transform: scale(1); }
+}
+
+.pmu-animated-gradient-text {
+  background: linear-gradient(
+    90deg,
+    #db2777 0%,
+    #ec4899 25%,
+    #be185d 50%,
+    #ec4899 75%,
+    #db2777 100%
+  );
+  background-size: 200% auto;
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  animation: pmu-gradient-shift 6s ease-in-out infinite;
+}
+
+.pmu-shiny-text {
+  background: linear-gradient(
+    90deg,
+    rgba(190, 24, 93, 0.85) 0%,
+    #ec4899 50%,
+    rgba(190, 24, 93, 0.85) 100%
+  );
+  background-size: 200% auto;
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  animation: pmu-shine 3s linear infinite;
+}
+
+.pmu-blur-fade {
+  opacity: 0;
+  filter: blur(10px);
+  transform: translateY(10px);
+  transition:
+    opacity 700ms ease-out,
+    filter 700ms ease-out,
+    transform 700ms ease-out;
+}
+
+.pmu-blur-fade.is-visible {
+  opacity: 1;
+  filter: blur(0);
+  transform: translateY(0);
+}
+
+.pmu-float-soft {
+  animation: pmu-float-soft 4s ease-in-out infinite;
+}
+
+.pmu-pop-in {
+  animation: pmu-pop-in 480ms cubic-bezier(0.34, 1.56, 0.64, 1) both;
+}

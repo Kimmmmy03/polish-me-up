@@ -27,6 +27,8 @@ export default function LoginPage() {
   const form = useForm<LoginInput>({
     resolver: zodResolver(loginSchema),
     defaultValues: { email: "", password: "" },
+    mode: "onBlur",
+    reValidateMode: "onChange",
   });
 
   async function onSubmit(values: LoginInput) {
@@ -60,7 +62,7 @@ export default function LoginPage() {
   return (
     <div className="space-y-4">
       <div className="space-y-1">
-        <h2 className="text-xl font-semibold text-[#2D2D2D]">Sign in</h2>
+        <h2 className="text-xl font-semibold text-[#3D1A2A]">Sign in</h2>
         <p className="text-sm text-muted-foreground">
           Welcome back. Sign in to continue.
         </p>
@@ -75,7 +77,13 @@ export default function LoginPage() {
               <FormItem>
                 <FormLabel>Email</FormLabel>
                 <FormControl>
-                  <Input type="email" autoComplete="email" {...field} />
+                  <Input
+                    type="email"
+                    inputMode="email"
+                    autoComplete="email"
+                    enterKeyHint="next"
+                    {...field}
+                  />
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -91,6 +99,7 @@ export default function LoginPage() {
                   <Input
                     type="password"
                     autoComplete="current-password"
+                    enterKeyHint="go"
                     {...field}
                   />
                 </FormControl>
@@ -105,7 +114,8 @@ export default function LoginPage() {
 
           <Button
             type="submit"
-            className="w-full bg-[#E91E63] text-white hover:bg-[#C2185B]"
+            size="lg"
+            className="w-full bg-[#EC4899] text-white hover:bg-[#BE185D]"
             disabled={form.formState.isSubmitting}
           >
             {form.formState.isSubmitting ? "Signing in…" : "Sign in"}
@@ -117,7 +127,7 @@ export default function LoginPage() {
         No account?{" "}
         <Link
           href="/register"
-          className="font-medium text-[#E91E63] hover:underline"
+          className="font-medium text-[#EC4899] hover:underline"
         >
           Create one
         </Link>
