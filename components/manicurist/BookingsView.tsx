@@ -137,9 +137,20 @@ function todayISO(): string {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
 }
 
-export function BookingsView({ bookings }: { bookings: BookingRow[] }) {
+export function BookingsView({
+  bookings,
+  currentManicuristId,
+}: {
+  bookings: BookingRow[];
+  currentManicuristId: string | null;
+}) {
   const [statusFilter, setStatusFilter] = React.useState<BookingStatus | "all">("all");
   const [sourceFilter, setSourceFilter] = React.useState<RecordSource | "all">("all");
+  // Default to "mine" when we know who the current manicurist is; otherwise
+  // fall back to "all" so the page still shows something useful.
+  const [manicuristScope, setManicuristScope] = React.useState<"mine" | "all">(
+    currentManicuristId ? "mine" : "all",
+  );
   const [dateFrom, setDateFrom] = React.useState<string>("");
   const [dateTo, setDateTo] = React.useState<string>("");
   const [selected, setSelected] = React.useState<BookingRow | null>(null);
@@ -147,13 +158,27 @@ export function BookingsView({ bookings }: { bookings: BookingRow[] }) {
 
   const filtered = React.useMemo(() => {
     return bookings.filter((b) => {
+      if (
+        manicuristScope === "mine" &&
+        currentManicuristId &&
+        b.manicurist_id !== currentManicuristId
+      )
+        return false;
       if (statusFilter !== "all" && b.status !== statusFilter) return false;
       if (sourceFilter !== "all" && b.source !== sourceFilter) return false;
       if (dateFrom && b.booking_date < dateFrom) return false;
       if (dateTo && b.booking_date > dateTo) return false;
       return true;
     });
-  }, [bookings, statusFilter, sourceFilter, dateFrom, dateTo]);
+  }, [
+    bookings,
+    statusFilter,
+    sourceFilter,
+    manicuristScope,
+    currentManicuristId,
+    dateFrom,
+    dateTo,
+  ]);
 
   const selectedFresh = React.useMemo(() => {
     if (!selected) return null;
@@ -279,11 +304,21 @@ export function BookingsView({ bookings }: { bookings: BookingRow[] }) {
     },
   ];
 
+  // Scope counts as "active" only when the user has flipped it away from
+  // the default for their account.
+  const defaultScope: "mine" | "all" = currentManicuristId ? "mine" : "all";
+  const scopeIsCustom = manicuristScope !== defaultScope;
+
   const filtersActive =
-    statusFilter !== "all" || sourceFilter !== "all" || !!dateFrom || !!dateTo;
+    statusFilter !== "all" ||
+    sourceFilter !== "all" ||
+    scopeIsCustom ||
+    !!dateFrom ||
+    !!dateTo;
   const activeFilterCount =
     (statusFilter !== "all" ? 1 : 0) +
     (sourceFilter !== "all" ? 1 : 0) +
+    (scopeIsCustom ? 1 : 0) +
     (dateFrom ? 1 : 0) +
     (dateTo ? 1 : 0);
 
@@ -368,6 +403,26 @@ export function BookingsView({ bookings }: { bookings: BookingRow[] }) {
               </Select>
             </div>
 
+            {currentManicuristId && (
+              <div className="space-y-1.5">
+                <label className="block text-xs font-medium tracking-wide text-[#5C2D48]">
+                  Manicurist
+                </label>
+                <Select
+                  value={manicuristScope}
+                  onValueChange={(v) => setManicuristScope(v as "mine" | "all")}
+                >
+                  <SelectTrigger className="w-full sm:w-44">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="mine">My bookings</SelectItem>
+                    <SelectItem value="all">All manicurists</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
+
             <div className="space-y-1.5">
               <label className="block text-xs font-medium tracking-wide text-[#5C2D48]">
                 From
@@ -401,6 +456,7 @@ export function BookingsView({ bookings }: { bookings: BookingRow[] }) {
                 onClick={() => {
                   setStatusFilter("all");
                   setSourceFilter("all");
+                  setManicuristScope(defaultScope);
                   setDateFrom("");
                   setDateTo("");
                 }}

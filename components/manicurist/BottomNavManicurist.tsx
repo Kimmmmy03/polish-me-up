@@ -17,6 +17,7 @@ import {
   MoreHorizontal,
   Package,
   Receipt,
+  UserCog,
   Users,
   type LucideIcon,
 } from "lucide-react";
@@ -57,6 +58,12 @@ const OVERFLOW: OverflowItem[] = [
     label: "Availability",
     description: "Weekly schedule and date overrides",
     Icon: Calendar,
+  },
+  {
+    href: "/profile",
+    label: "Profile",
+    description: "Edit details, change password, add team",
+    Icon: UserCog,
   },
 ];
 

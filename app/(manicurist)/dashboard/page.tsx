@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { redirect } from "next/navigation";
 import {
   ArrowRight,
   Calendar,
@@ -81,6 +82,22 @@ function monthBounds(now: Date) {
 
 export default async function DashboardPage() {
   const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) redirect("/login");
+
+  // Every query below is scoped to the manicurists row tied to this signed-in
+  // profile. If there isn't one yet (rare — a manicurist who hasn't been
+  // bootstrapped), the queries still execute but match nothing, leaving the
+  // dashboard in an empty state rather than leaking data from peers.
+  const { data: manicuristRow } = await supabase
+    .from("manicurists")
+    .select("id")
+    .eq("profile_id", user.id)
+    .maybeSingle();
+  const manicuristId = manicuristRow?.id ?? null;
+
   const now = new Date();
   const { start: monthStart, end: monthEnd } = monthBounds(now);
   const today = toISODate(now);
@@ -88,50 +105,76 @@ export default async function DashboardPage() {
   ninetyDaysAgo.setUTCDate(ninetyDaysAgo.getUTCDate() - 90);
   const ninetyDaysAgoISO = toISODate(ninetyDaysAgo);
 
+  // Filter helper: applies `manicurist_id = X`, or `is null` to short-circuit
+  // to zero rows when this user has no manicurist row yet.
+  const scopeMani = <T extends { eq: (col: string, val: string) => T; is: (col: string, val: null) => T }>(q: T): T =>
+    manicuristId ? q.eq("manicurist_id", manicuristId) : q.is("manicurist_id", null).is("id", null);
+
   const [
-    customersRes,
+    customerScopeRes,
     bookingsThisMonthRes,
     revenueRowsRes,
     topPackageRowsRes,
     todayBookingsRes,
     recentBookingsRes,
   ] = await Promise.all([
-    supabase.from("customers").select("*", { count: "exact", head: true }),
-    supabase
-      .from("bookings")
-      .select("*", { count: "exact", head: true })
-      .gte("booking_date", monthStart)
-      .lte("booking_date", monthEnd),
-    supabase
-      .from("bookings")
-      .select("total")
-      .eq("status", "completed")
-      .gte("booking_date", monthStart)
-      .lte("booking_date", monthEnd),
-    supabase
-      .from("booking_items")
-      .select(
-        "quantity, items!inner(name, category), bookings!inner(booking_date)",
-      )
-      .eq("items.category", "package")
-      .gte("bookings.booking_date", ninetyDaysAgoISO),
-    supabase
-      .from("bookings")
-      .select(
-        "id, booking_number, booking_time, total, status, customers(full_name)",
-      )
-      .eq("booking_date", today)
-      .order("booking_time", { ascending: true, nullsFirst: false }),
-    supabase
-      .from("bookings")
-      .select(
-        "id, booking_number, booking_date, total, status, customers(full_name), booking_items(id)",
-      )
-      .order("created_at", { ascending: false })
-      .limit(8),
+    // Distinct customers this manicurist has served. Counting unique
+    // customer_ids client-side is cheaper than a DISTINCT-aware RPC for
+    // typical volumes.
+    manicuristId
+      ? supabase
+          .from("bookings")
+          .select("customer_id")
+          .eq("manicurist_id", manicuristId)
+      : Promise.resolve({ data: [] as { customer_id: string }[], error: null }),
+    scopeMani(
+      supabase
+        .from("bookings")
+        .select("*", { count: "exact", head: true })
+        .gte("booking_date", monthStart)
+        .lte("booking_date", monthEnd),
+    ),
+    scopeMani(
+      supabase
+        .from("bookings")
+        .select("total")
+        .eq("status", "completed")
+        .gte("booking_date", monthStart)
+        .lte("booking_date", monthEnd),
+    ),
+    manicuristId
+      ? supabase
+          .from("booking_items")
+          .select(
+            "quantity, items!inner(name, category), bookings!inner(booking_date, manicurist_id)",
+          )
+          .eq("items.category", "package")
+          .eq("bookings.manicurist_id", manicuristId)
+          .gte("bookings.booking_date", ninetyDaysAgoISO)
+      : Promise.resolve({ data: [], error: null }),
+    scopeMani(
+      supabase
+        .from("bookings")
+        .select(
+          "id, booking_number, booking_time, total, status, customers(full_name)",
+        )
+        .eq("booking_date", today)
+        .order("booking_time", { ascending: true, nullsFirst: false }),
+    ),
+    scopeMani(
+      supabase
+        .from("bookings")
+        .select(
+          "id, booking_number, booking_date, total, status, customers(full_name), booking_items(id)",
+        )
+        .order("created_at", { ascending: false })
+        .limit(8),
+    ),
   ]);
 
-  const customersCount = customersRes.count ?? 0;
+  const customersCount = new Set(
+    (customerScopeRes.data ?? []).map((r) => r.customer_id),
+  ).size;
   const bookingsThisMonth = bookingsThisMonthRes.count ?? 0;
   const revenueThisMonth = (revenueRowsRes.data ?? []).reduce(
     (sum, r) => sum + Number(r.total ?? 0),
@@ -188,7 +231,7 @@ export default async function DashboardPage() {
 
       <div className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4">
         <StatsCard
-          label="Total Customers"
+          label="My Customers"
           value={customersCount}
           icon={Users}
           accent="violet"

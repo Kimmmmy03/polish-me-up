@@ -4,6 +4,7 @@ import { LogIn, Sparkle } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { CartIndicator } from "@/components/customer/CartIndicator";
+import { NotificationBell } from "@/components/shared/NotificationBell";
 import { SignOutButton } from "@/components/shared/SignOutButton";
 import { SiteHeaderNav } from "@/components/shared/SiteHeaderNav";
 import { createClient } from "@/lib/supabase/server";
@@ -61,6 +62,7 @@ export async function SiteHeader({ showCart = false }: { showCart?: boolean }) {
               <CartIndicator />
             </div>
           )}
+          {user && <NotificationBell userId={user.id} />}
           {user ? (
             <SignOutButton />
           ) : (

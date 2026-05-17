@@ -2,6 +2,10 @@
 
 import { revalidatePath } from "next/cache";
 
+import {
+  notifyPaymentReceived,
+  notifyStatusChanged,
+} from "@/lib/notifications/events";
 import { createClient } from "@/lib/supabase/server";
 import {
   bookingStatusTransitionSchema,
@@ -132,6 +136,17 @@ export async function transitionBookingStatus(
   revalidatePath("/bookings");
   revalidatePath("/sales");
   revalidatePath("/dashboard");
+
+  // Fire-and-forget: a notification failure must not undo the DB transition.
+  void notifyStatusChanged(
+    parsed.data.booking_id,
+    parsed.data.from,
+    parsed.data.to,
+    "manicurist",
+  ).catch((err) => {
+    console.error("[notify] status change", parsed.data.booking_id, err);
+  });
+
   return { ok: true };
 }
 
@@ -153,5 +168,12 @@ export async function setPaymentStatus(
   if (error) return { ok: false, error: error.message };
 
   revalidatePath("/bookings");
+
+  if (parsed.data.payment_status === "paid") {
+    void notifyPaymentReceived(parsed.data.booking_id).catch((err) => {
+      console.error("[notify] payment received", parsed.data.booking_id, err);
+    });
+  }
+
   return { ok: true };
 }

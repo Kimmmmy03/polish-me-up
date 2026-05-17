@@ -15,7 +15,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import { createClient } from "@/lib/supabase/client";
+import { cancelBookingAsCustomer } from "@/app/(customer)/my-bookings/actions";
 
 export function CancelBookingButton({ bookingId }: { bookingId: string }) {
   const router = useRouter();
@@ -26,14 +26,10 @@ export function CancelBookingButton({ bookingId }: { bookingId: string }) {
   async function handleCancel() {
     setError(null);
     setPending(true);
-    const supabase = createClient();
-    const { error: cancelErr } = await supabase
-      .from("bookings")
-      .update({ status: "cancelled" })
-      .eq("id", bookingId);
+    const result = await cancelBookingAsCustomer({ booking_id: bookingId });
     setPending(false);
-    if (cancelErr) {
-      setError(cancelErr.message);
+    if (!result.ok) {
+      setError(result.error);
       return;
     }
     setOpen(false);

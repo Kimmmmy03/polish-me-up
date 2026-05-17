@@ -15,6 +15,7 @@ import {
   LayoutDashboard,
   Package,
   Receipt,
+  UserCog,
   Users,
   type LucideIcon,
 } from "lucide-react";
@@ -32,6 +33,7 @@ const navItems: NavItem[] = [
   { href: "/items", label: "Items", Icon: Package },
   { href: "/sales", label: "Sales", Icon: Receipt },
   { href: "/availability", label: "Availability", Icon: Calendar },
+  { href: "/profile", label: "Profile", Icon: UserCog },
 ];
 
 export function SidebarNav() {

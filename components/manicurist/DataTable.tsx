@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { Inbox, Search } from "lucide-react";
+import { Inbox, Search, X } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -72,17 +72,49 @@ export function DataTable<T>({
   return (
     <div className="space-y-3">
       {searchKey && (
-        <div className="relative max-w-sm">
-          <Search className="pointer-events-none absolute top-1/2 left-2.5 size-4 -translate-y-1/2 text-muted-foreground" />
-          <Input
-            value={query}
-            onChange={(e) => {
-              setQuery(e.target.value);
-              setPage(0);
-            }}
-            placeholder={searchPlaceholder}
-            className="pl-8"
-          />
+        <div className="flex flex-wrap items-center gap-2 sm:gap-3">
+          <div className="group relative w-full max-w-md flex-1 sm:flex-none sm:w-80">
+            <Search
+              aria-hidden
+              className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-[#BE3D7E] transition-colors group-focus-within:text-[#BE185D]"
+            />
+            <Input
+              type="search"
+              value={query}
+              onChange={(e) => {
+                setQuery(e.target.value);
+                setPage(0);
+              }}
+              onKeyDown={(e) => {
+                if (e.key === "Escape" && query) {
+                  e.preventDefault();
+                  setQuery("");
+                  setPage(0);
+                }
+              }}
+              placeholder={searchPlaceholder}
+              aria-label={searchPlaceholder}
+              className="border-[#F8BBD0] bg-white pl-9 pr-9 shadow-[0_2px_8px_-4px_rgba(244,143,177,0.35)] md:pl-9 md:pr-9 [&::-webkit-search-cancel-button]:hidden"
+            />
+            {query && (
+              <button
+                type="button"
+                onClick={() => {
+                  setQuery("");
+                  setPage(0);
+                }}
+                aria-label="Clear search"
+                className="absolute top-1/2 right-2 inline-flex size-6 -translate-y-1/2 items-center justify-center rounded-full text-[#5C2D48]/60 transition-colors hover:bg-[#FFE4EC] hover:text-[#BE185D]"
+              >
+                <X className="size-3.5" />
+              </button>
+            )}
+          </div>
+          {query && (
+            <span className="text-xs text-[#5C2D48]/70">
+              {filtered.length} {filtered.length === 1 ? "match" : "matches"}
+            </span>
+          )}
         </div>
       )}
 

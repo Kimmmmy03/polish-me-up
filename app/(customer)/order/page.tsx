@@ -53,6 +53,7 @@ import {
 } from "@/components/ui/popover";
 import { useCartStore } from "@/store/cartStore";
 import { createClient } from "@/lib/supabase/client";
+import { notifyBookingCreatedAction } from "./actions";
 import { calculateDiscount } from "@/lib/utils/calculateDiscount";
 import { formatMYR } from "@/lib/utils/formatPrice";
 import {
@@ -662,6 +663,10 @@ export default function OrderPage() {
     // Clear the cart after the navigation has been kicked off so the
     // redirect-to-/order/start effect doesn't race with the push.
     setTimeout(() => reset(), 0);
+
+    void notifyBookingCreatedAction(bookingId).catch((err) => {
+      console.error("[notify] booking created", bookingId, err);
+    });
   }
 
   if (!hydrated) {

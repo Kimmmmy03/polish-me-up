@@ -2,6 +2,7 @@
 
 import * as React from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import {
   Calendar,
   ChevronDown,
@@ -9,6 +10,7 @@ import {
   Download,
   ListChecks,
   SlidersHorizontal,
+  Trash2,
   TrendingUp,
 } from "lucide-react";
 
@@ -23,6 +25,12 @@ import {
 } from "@/components/ui/select";
 import { DataTable, type ColumnDef } from "@/components/manicurist/DataTable";
 import { StatsCard } from "@/components/manicurist/StatsCard";
+import {
+  AddSaleDialog,
+  type CustomerOption,
+  type ItemOption,
+} from "@/components/manicurist/AddSaleDialog";
+import { deleteSale } from "@/app/(manicurist)/sales/actions";
 import { exportToCSV } from "@/lib/utils/csvExport";
 import { formatMYR } from "@/lib/utils/formatPrice";
 import type { Database } from "@/types/database.types";
@@ -69,11 +77,38 @@ function todayISO(): string {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
 }
 
-export function SalesView({ sales }: { sales: SalesRow[] }) {
+export function SalesView({
+  sales,
+  customers,
+  items,
+}: {
+  sales: SalesRow[];
+  customers: CustomerOption[];
+  items: ItemOption[];
+}) {
+  const router = useRouter();
   const [sourceFilter, setSourceFilter] = React.useState<RecordSource | "all">("all");
   const [dateFrom, setDateFrom] = React.useState<string>("");
   const [dateTo, setDateTo] = React.useState<string>("");
   const [mobileFiltersOpen, setMobileFiltersOpen] = React.useState(false);
+  const [deletingId, setDeletingId] = React.useState<string | null>(null);
+
+  async function handleDelete(row: SalesRow) {
+    const booking = pickBooking(row);
+    const label = booking?.booking_number ?? row.id.slice(0, 8);
+    const ok = window.confirm(
+      `Delete sale ${label}? This also removes the underlying manual booking.`,
+    );
+    if (!ok) return;
+    setDeletingId(row.id);
+    const res = await deleteSale({ sale_id: row.id });
+    setDeletingId(null);
+    if (res.ok) {
+      router.refresh();
+    } else {
+      window.alert(`Delete failed: ${res.error}`);
+    }
+  }
 
   const filtered = React.useMemo(() => {
     return sales.filter((s) => {
@@ -192,6 +227,24 @@ export function SalesView({ sales }: { sales: SalesRow[] }) {
         </span>
       ),
     },
+    {
+      key: "actions",
+      header: "",
+      cell: (row) =>
+        row.source === "manual" ? (
+          <Button
+            type="button"
+            variant="ghost"
+            size="icon-sm"
+            onClick={() => handleDelete(row)}
+            disabled={deletingId === row.id}
+            aria-label="Delete sale"
+            title="Delete sale"
+          >
+            <Trash2 className="size-4 text-[#BE185D]" />
+          </Button>
+        ) : null,
+    },
   ];
 
   const filtersActive = sourceFilter !== "all" || dateFrom || dateTo;
@@ -248,15 +301,18 @@ export function SalesView({ sales }: { sales: SalesRow[] }) {
               className={`size-4 transition-transform ${mobileFiltersOpen ? "rotate-180" : ""}`}
             />
           </Button>
-          <Button
-            type="button"
-            variant="secondary"
-            onClick={handleExport}
-            className="bg-white hover:bg-[#FFE4EC]"
-          >
-            <Download />
-            Export
-          </Button>
+          <div className="flex items-center gap-2">
+            <AddSaleDialog customers={customers} items={items} />
+            <Button
+              type="button"
+              variant="secondary"
+              onClick={handleExport}
+              className="bg-white hover:bg-[#FFE4EC]"
+            >
+              <Download />
+              Export
+            </Button>
+          </div>
         </div>
 
         <div
@@ -325,15 +381,18 @@ export function SalesView({ sales }: { sales: SalesRow[] }) {
             )}
           </div>
 
-          <Button
-            type="button"
-            variant="secondary"
-            onClick={handleExport}
-            className="hidden bg-white hover:bg-[#FFE4EC] sm:inline-flex"
-          >
-            <Download />
-            Export CSV
-          </Button>
+          <div className="hidden items-center gap-2 sm:inline-flex">
+            <AddSaleDialog customers={customers} items={items} />
+            <Button
+              type="button"
+              variant="secondary"
+              onClick={handleExport}
+              className="bg-white hover:bg-[#FFE4EC]"
+            >
+              <Download />
+              Export CSV
+            </Button>
+          </div>
         </div>
       </div>
 
@@ -395,6 +454,21 @@ export function SalesView({ sales }: { sales: SalesRow[] }) {
                   </p>
                 </div>
               </div>
+              {row.source === "manual" && (
+                <div className="flex justify-end">
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => handleDelete(row)}
+                    disabled={deletingId === row.id}
+                    className="text-[#BE185D]"
+                  >
+                    <Trash2 className="size-4" />
+                    Delete
+                  </Button>
+                </div>
+              )}
             </div>
           );
         }}

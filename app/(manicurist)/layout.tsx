@@ -6,6 +6,7 @@ import { createClient } from "@/lib/supabase/server";
 import { SidebarNav } from "@/components/manicurist/SidebarNav";
 import { BottomNavManicurist } from "@/components/manicurist/BottomNavManicurist";
 import { MobileTopBar } from "@/components/manicurist/MobileTopBar";
+import { NotificationBell } from "@/components/shared/NotificationBell";
 import { SignOutButton } from "@/components/shared/SignOutButton";
 
 export default async function ManicuristLayout({
@@ -46,6 +47,7 @@ export default async function ManicuristLayout({
         initials={initials}
         fullName={profile.full_name ?? profile.email ?? "Manicurist"}
         email={profile.email ?? null}
+        userId={user.id}
       />
 
       <aside className="sticky top-0 hidden h-screen w-64 shrink-0 flex-col border-r border-[#F8BBD0] bg-gradient-to-b from-white/95 to-[#FFF5F8]/80 backdrop-blur-sm lg:flex">
@@ -73,7 +75,7 @@ export default async function ManicuristLayout({
             <div className="flex size-10 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-[#EC4899] to-[#DB2777] text-sm font-semibold text-white shadow-sm">
               {initials}
             </div>
-            <div className="min-w-0">
+            <div className="min-w-0 flex-1">
               <p className="truncate text-sm font-semibold text-[#3D1A2A]">
                 {profile.full_name ?? "Manicurist"}
               </p>
@@ -81,6 +83,7 @@ export default async function ManicuristLayout({
                 {profile.email}
               </p>
             </div>
+            <NotificationBell userId={user.id} />
           </div>
         </div>
 

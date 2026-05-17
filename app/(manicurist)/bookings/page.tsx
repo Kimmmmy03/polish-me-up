@@ -1,9 +1,24 @@
+import { redirect } from "next/navigation";
+
 import { BookingsView } from "@/components/manicurist/BookingsView";
 import { PageHeader } from "@/components/manicurist/PageHeader";
 import { createClient } from "@/lib/supabase/server";
 
 export default async function BookingsPage() {
   const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) redirect("/login");
+
+  // Resolve the manicurist row tied to this signed-in profile. This is the
+  // default "mine" filter the view starts with.
+  const { data: manicuristRow } = await supabase
+    .from("manicurists")
+    .select("id")
+    .eq("profile_id", user.id)
+    .maybeSingle();
+
   const { data, error } = await supabase
     .from("bookings")
     .select(
@@ -54,7 +69,10 @@ export default async function BookingsPage() {
           Failed to load bookings: {error.message}
         </p>
       ) : (
-        <BookingsView bookings={bookings} />
+        <BookingsView
+          bookings={bookings}
+          currentManicuristId={manicuristRow?.id ?? null}
+        />
       )}
     </div>
   );

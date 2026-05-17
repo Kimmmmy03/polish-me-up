@@ -2,15 +2,18 @@ import Link from "next/link";
 import { Sparkle } from "lucide-react";
 
 import { MobileTopBarUserMenu } from "@/components/manicurist/MobileTopBarUserMenu";
+import { NotificationBell } from "@/components/shared/NotificationBell";
 
 export function MobileTopBar({
   initials,
   fullName,
   email,
+  userId,
 }: {
   initials: string;
   fullName: string;
   email: string | null;
+  userId: string;
 }) {
   return (
     <header className="sticky top-0 z-30 flex items-center justify-between gap-3 border-b border-[#F8BBD0]/60 bg-gradient-to-r from-[#FFF5F8]/95 via-white/90 to-[#FFE4EC]/95 px-4 py-2.5 backdrop-blur-md shadow-[0_2px_12px_-8px_rgba(244,143,177,0.35)] lg:hidden">
@@ -31,11 +34,14 @@ export function MobileTopBar({
         </span>
       </Link>
 
-      <MobileTopBarUserMenu
-        initials={initials}
-        fullName={fullName}
-        email={email}
-      />
+      <div className="flex items-center gap-1">
+        <NotificationBell userId={userId} />
+        <MobileTopBarUserMenu
+          initials={initials}
+          fullName={fullName}
+          email={email}
+        />
+      </div>
     </header>
   );
 }

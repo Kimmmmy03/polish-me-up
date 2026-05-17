@@ -42,6 +42,13 @@ next-env.d.ts
 
 .env*
 !.env.example
+env.download
+
+# supabase CLI local cache
+/supabase/.temp/
+
+# sentry build artifacts
+.sentryclirc
 
 # internal docs (not shared in the repo)
 /docs/
