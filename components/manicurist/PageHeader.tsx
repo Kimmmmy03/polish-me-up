@@ -1,11 +1,15 @@
+import { NotificationBell } from "@/components/shared/NotificationBell";
+
 export function PageHeader({
   title,
   subtitle,
   actions,
+  userId,
 }: {
   title: React.ReactNode;
   subtitle?: React.ReactNode;
   actions?: React.ReactNode;
+  userId?: string;
 }) {
   return (
     <header className="flex flex-col gap-3 border-b border-[#F8BBD0]/60 pb-4 sm:flex-row sm:flex-wrap sm:items-end sm:justify-between sm:gap-4 sm:pb-5">
@@ -17,8 +21,15 @@ export function PageHeader({
           <p className="text-xs text-[#5C2D48]/70 sm:text-sm">{subtitle}</p>
         )}
       </div>
-      {actions && (
-        <div className="flex flex-wrap items-center gap-2">{actions}</div>
+      {(userId || actions) && (
+        <div className="flex flex-wrap items-center gap-2">
+          {userId && (
+            <span className="hidden lg:inline-flex">
+              <NotificationBell userId={userId} />
+            </span>
+          )}
+          {actions}
+        </div>
       )}
     </header>
   );

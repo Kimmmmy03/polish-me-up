@@ -16,6 +16,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { StatsCard } from "@/components/manicurist/StatsCard";
 import { PageHeader } from "@/components/manicurist/PageHeader";
+import { RefreshControl } from "@/components/common/RefreshControl";
 import { createClient } from "@/lib/supabase/server";
 import { formatMYR } from "@/lib/utils/formatPrice";
 import type { Database } from "@/types/database.types";
@@ -227,6 +228,8 @@ export default async function DashboardPage() {
       <PageHeader
         title="Dashboard"
         subtitle={dateFormatter.format(now)}
+        userId={user.id}
+        actions={<RefreshControl updatedAt={now.toISOString()} />}
       />
 
       <div className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4">

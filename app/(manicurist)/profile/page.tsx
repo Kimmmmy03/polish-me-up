@@ -32,6 +32,7 @@ export default async function ProfilePage() {
       <PageHeader
         title="Profile"
         subtitle="Manage your details, change your password, or add another manicurist."
+        userId={user.id}
       />
       <ProfileForms
         initial={{

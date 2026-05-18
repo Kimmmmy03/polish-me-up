@@ -6,7 +6,6 @@ import { createClient } from "@/lib/supabase/server";
 import { SidebarNav } from "@/components/manicurist/SidebarNav";
 import { BottomNavManicurist } from "@/components/manicurist/BottomNavManicurist";
 import { MobileTopBar } from "@/components/manicurist/MobileTopBar";
-import { NotificationBell } from "@/components/shared/NotificationBell";
 import { SignOutButton } from "@/components/shared/SignOutButton";
 
 export default async function ManicuristLayout({
@@ -83,7 +82,6 @@ export default async function ManicuristLayout({
                 {profile.email}
               </p>
             </div>
-            <NotificationBell userId={user.id} />
           </div>
         </div>
 

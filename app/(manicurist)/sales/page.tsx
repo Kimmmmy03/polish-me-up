@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 
 import { SalesView } from "@/components/manicurist/SalesView";
 import { PageHeader } from "@/components/manicurist/PageHeader";
+import { RefreshControl } from "@/components/common/RefreshControl";
 import { createClient } from "@/lib/supabase/server";
 
 export default async function SalesPage() {
@@ -59,12 +60,15 @@ export default async function SalesPage() {
   const sales = salesRes.data ?? [];
   const customers = customersRes.data ?? [];
   const items = itemsRes.data ?? [];
+  const loadedAt = new Date().toISOString();
 
   return (
     <div className="space-y-6">
       <PageHeader
         title="Sales"
         subtitle={`${sales.length} ${sales.length === 1 ? "sale" : "sales"} on record`}
+        userId={user.id}
+        actions={<RefreshControl updatedAt={loadedAt} />}
       />
 
       {salesRes.error ? (

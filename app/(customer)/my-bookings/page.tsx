@@ -12,6 +12,7 @@ import {
 
 import { Button } from "@/components/ui/button";
 import { CancelBookingButton } from "@/components/customer/CancelBookingButton";
+import { RefreshControl } from "@/components/common/RefreshControl";
 import { createClient } from "@/lib/supabase/server";
 import { formatMYR } from "@/lib/utils/formatPrice";
 import type { Database } from "@/types/database.types";
@@ -264,6 +265,7 @@ export default async function MyBookingsPage() {
     : [];
 
   if (!customer || bookings.length === 0) {
+    const emptyLoadedAt = new Date().toISOString();
     return (
       <div className="mx-auto max-w-md space-y-4 rounded-3xl border border-[#F8BBD0] bg-gradient-to-br from-white to-[#FFE4EC]/60 p-10 text-center shadow-[0_10px_30px_-15px_rgba(236,72,153,0.35)]">
         <div className="pmu-float-soft mx-auto inline-flex size-14 items-center justify-center rounded-2xl bg-gradient-to-br from-[#EC4899] to-[#DB2777] text-white shadow-md">
@@ -273,13 +275,16 @@ export default async function MyBookingsPage() {
         <p className="text-sm text-[#5C2D48]/75">
           Treat yourself - browse our packages and book your first appointment.
         </p>
-        <Button
-          asChild
-          size="lg"
-          className="rounded-full bg-gradient-to-r from-[#EC4899] to-[#DB2777] px-6 text-white shadow-md hover:from-[#DB2777] hover:to-[#BE185D] hover:shadow-lg"
-        >
-          <Link href="/order/start">Start an order</Link>
-        </Button>
+        <div className="flex flex-col items-center gap-3">
+          <Button
+            asChild
+            size="lg"
+            className="rounded-full bg-gradient-to-r from-[#EC4899] to-[#DB2777] px-6 text-white shadow-md hover:from-[#DB2777] hover:to-[#BE185D] hover:shadow-lg"
+          >
+            <Link href="/order/start">Start an order</Link>
+          </Button>
+          <RefreshControl updatedAt={emptyLoadedAt} />
+        </div>
       </div>
     );
   }
@@ -297,14 +302,18 @@ export default async function MyBookingsPage() {
   );
 
   const nextUp = scheduled[0];
+  const loadedAt = new Date().toISOString();
 
   return (
     <div className="space-y-8">
       {/* Hero header */}
       <header className="space-y-2 sm:space-y-3">
-        <h1 className="text-2xl font-bold tracking-tight sm:text-3xl md:text-4xl">
-          My <span className="pmu-animated-gradient-text">bookings</span>
-        </h1>
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <h1 className="text-2xl font-bold tracking-tight sm:text-3xl md:text-4xl">
+            My <span className="pmu-animated-gradient-text">bookings</span>
+          </h1>
+          <RefreshControl updatedAt={loadedAt} />
+        </div>
         <p className="text-sm text-[#5C2D48]/75 sm:text-base">
           Upcoming appointments and past visits in one place.
         </p>

@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 
 import { BookingsView } from "@/components/manicurist/BookingsView";
 import { PageHeader } from "@/components/manicurist/PageHeader";
+import { RefreshControl } from "@/components/common/RefreshControl";
 import { createClient } from "@/lib/supabase/server";
 
 export default async function BookingsPage() {
@@ -56,12 +57,15 @@ export default async function BookingsPage() {
     .order("booking_time", { ascending: false, nullsFirst: false });
 
   const bookings = data ?? [];
+  const loadedAt = new Date().toISOString();
 
   return (
     <div className="space-y-6">
       <PageHeader
         title="Bookings"
         subtitle={`${bookings.length} ${bookings.length === 1 ? "booking" : "bookings"} on record`}
+        userId={user.id}
+        actions={<RefreshControl updatedAt={loadedAt} />}
       />
 
       {error ? (

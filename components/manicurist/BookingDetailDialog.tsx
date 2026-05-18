@@ -109,11 +109,13 @@ export function BookingDetailDialog({
   const [trackedId, setTrackedId] = React.useState<string | null>(
     booking?.id ?? null,
   );
+  const [confirmAdvanceOpen, setConfirmAdvanceOpen] = React.useState(false);
 
   // Reset the inline error when the dialog opens a different booking.
   if (booking && booking.id !== trackedId) {
     setTrackedId(booking.id);
     setError(null);
+    setConfirmAdvanceOpen(false);
   }
 
   if (!booking) return null;
@@ -137,6 +139,17 @@ export function BookingDetailDialog({
       ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(booking.address)}`
       : "";
 
+  const advanceNeedsConfirm = next === "confirmed" || next === "completed";
+
+  function handleAdvanceClick() {
+    if (!next || !booking) return;
+    if (advanceNeedsConfirm) {
+      setConfirmAdvanceOpen(true);
+      return;
+    }
+    void advance();
+  }
+
   async function advance() {
     if (!next || !booking) return;
     setError(null);
@@ -149,8 +162,10 @@ export function BookingDetailDialog({
     setPending(false);
     if (!result.ok) {
       setError(result.error);
+      setConfirmAdvanceOpen(false);
       return;
     }
+    setConfirmAdvanceOpen(false);
     router.refresh();
   }
 
@@ -437,7 +452,7 @@ export function BookingDetailDialog({
           </Button>
           <Button
             type="button"
-            onClick={advance}
+            onClick={handleAdvanceClick}
             disabled={pending || !next}
             className="w-full bg-gradient-to-r from-[#EC4899] to-[#DB2777] text-white shadow-md hover:from-[#DB2777] hover:to-[#BE185D] sm:w-auto"
           >
@@ -449,6 +464,48 @@ export function BookingDetailDialog({
                 : "No further transitions"}
           </Button>
         </DialogFooter>
+
+        <Dialog
+          open={confirmAdvanceOpen}
+          onOpenChange={(o) => {
+            if (!pending) setConfirmAdvanceOpen(o);
+          }}
+        >
+          <DialogContent className="sm:max-w-md">
+            <DialogHeader>
+              <DialogTitle>
+                {next === "completed"
+                  ? "Mark booking as completed?"
+                  : "Confirm this booking?"}
+              </DialogTitle>
+              <DialogDescription>
+                {next === "completed"
+                  ? "This will move the booking to Completed. You won't be able to advance or cancel it after this."
+                  : "This will move the booking from Pending to Confirmed."}
+              </DialogDescription>
+            </DialogHeader>
+            <DialogFooter className="!flex !flex-col-reverse gap-2 sm:!flex-row sm:!justify-end">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setConfirmAdvanceOpen(false)}
+                disabled={pending}
+                className="w-full sm:w-auto"
+              >
+                Cancel
+              </Button>
+              <Button
+                type="button"
+                onClick={advance}
+                disabled={pending || !next}
+                className="w-full bg-gradient-to-r from-[#EC4899] to-[#DB2777] text-white shadow-md hover:from-[#DB2777] hover:to-[#BE185D] sm:w-auto"
+              >
+                <ArrowRight />
+                {next ? `Advance to ${STATUS_LABELS[next]}` : "Advance"}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       </DialogContent>
     </Dialog>
   );

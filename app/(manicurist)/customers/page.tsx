@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { CustomersTable } from "@/components/manicurist/CustomersTable";
 import { ExportCustomersButton } from "@/components/manicurist/ExportCustomersButton";
 import { PageHeader } from "@/components/manicurist/PageHeader";
+import { RefreshControl } from "@/components/common/RefreshControl";
 import { createClient } from "@/lib/supabase/server";
 
 export default async function CustomersPage({
@@ -14,20 +15,27 @@ export default async function CustomersPage({
 }) {
   const params = await searchParams;
   const supabase = await createClient();
-  const { data, error } = await supabase
-    .from("customers")
-    .select("*")
-    .order("created_at", { ascending: false });
+  const [{ data: userData }, customersRes] = await Promise.all([
+    supabase.auth.getUser(),
+    supabase
+      .from("customers")
+      .select("*")
+      .order("created_at", { ascending: false }),
+  ]);
+  const { data, error } = customersRes;
 
   const customers = data ?? [];
+  const loadedAt = new Date().toISOString();
 
   return (
     <div className="space-y-6">
       <PageHeader
         title="Customers"
         subtitle={`${customers.length} ${customers.length === 1 ? "record" : "records"}`}
+        userId={userData.user?.id}
         actions={
           <>
+            <RefreshControl updatedAt={loadedAt} />
             <ExportCustomersButton />
             <Button
               asChild

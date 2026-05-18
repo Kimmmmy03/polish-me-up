@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { ItemsTable } from "@/components/manicurist/ItemsTable";
 import { ExportItemsButton } from "@/components/manicurist/ExportItemsButton";
 import { PageHeader } from "@/components/manicurist/PageHeader";
+import { RefreshControl } from "@/components/common/RefreshControl";
 import { createClient } from "@/lib/supabase/server";
 
 export default async function ItemsPage({
@@ -14,23 +15,30 @@ export default async function ItemsPage({
 }) {
   const params = await searchParams;
   const supabase = await createClient();
-  const { data, error } = await supabase
-    .from("items")
-    .select("*")
-    .order("category", { ascending: true })
-    .order("name", { ascending: true });
+  const [{ data: userData }, itemsRes] = await Promise.all([
+    supabase.auth.getUser(),
+    supabase
+      .from("items")
+      .select("*")
+      .order("category", { ascending: true })
+      .order("name", { ascending: true }),
+  ]);
+  const { data, error } = itemsRes;
 
   const items = data ?? [];
   const packageCount = items.filter((i) => i.category === "package").length;
   const addonCount = items.filter((i) => i.category === "addon").length;
+  const loadedAt = new Date().toISOString();
 
   return (
     <div className="space-y-6">
       <PageHeader
         title="Items"
         subtitle={`${packageCount} ${packageCount === 1 ? "package" : "packages"}, ${addonCount} ${addonCount === 1 ? "add-on" : "add-ons"}`}
+        userId={userData.user?.id}
         actions={
           <>
+            <RefreshControl updatedAt={loadedAt} />
             <ExportItemsButton />
             <Button
               asChild
