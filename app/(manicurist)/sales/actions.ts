@@ -57,6 +57,7 @@ const createSaleSchema = z.object({
     .min(1, "Booking number is required")
     .max(40),
   date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Invalid date"),
+  service_mode: z.enum(["walkin", "mobile"]).default("walkin"),
   customer: customerSchema,
   lines: z.array(lineSchema).min(1, "Add at least one line item"),
   discount_amount: z.number().nonnegative().default(0),
@@ -195,8 +196,8 @@ export async function createManualSale(
       manicurist_id: manicuristRow?.id ?? null,
       booking_date: parsed.data.date,
       booking_time: null,
-      service_mode: "walkin",
-      location_type: "booth",
+      service_mode: parsed.data.service_mode,
+      location_type: parsed.data.service_mode === "walkin" ? "booth" : "home",
       subtotal,
       discount_amount: parsed.data.discount_amount,
       total,

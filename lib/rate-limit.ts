@@ -25,7 +25,7 @@ function makeLimiter(
 }
 
 // Tighter limits for actions that touch the auth admin API or money.
-const adminLimiter = makeLimiter("rl:admin", 5, "1 m");
+const adminLimiter = makeLimiter("rl:admin", 8, "1 m");
 // Default limit for normal mutating server actions.
 const writeLimiter = makeLimiter("rl:write", 30, "1 m");
 

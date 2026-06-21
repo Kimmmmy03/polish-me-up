@@ -87,6 +87,9 @@ export function AddSaleDialog({
 
   const [bookingNumber, setBookingNumber] = React.useState(generateBookingNumber());
   const [date, setDate] = React.useState(todayISO());
+  const [serviceMode, setServiceMode] = React.useState<"walkin" | "mobile">(
+    "walkin",
+  );
   const [customer, setCustomer] = React.useState<TypeaheadValue>(null);
   const [lines, setLines] = React.useState<Line[]>([makeEmptyLine()]);
   const [discountMode, setDiscountMode] = React.useState<"amount" | "percent">(
@@ -125,6 +128,7 @@ export function AddSaleDialog({
     if (!open) return;
     setBookingNumber(generateBookingNumber());
     setDate(todayISO());
+    setServiceMode("walkin");
     setCustomer(null);
     setLines([makeEmptyLine()]);
     setDiscountMode("amount");
@@ -206,6 +210,7 @@ export function AddSaleDialog({
     const payload = {
       booking_number: bookingNumber.trim(),
       date,
+      service_mode: serviceMode,
       customer:
         customer.kind === "existing"
           ? ({ kind: "existing", id: customer.id } as const)
@@ -250,8 +255,8 @@ export function AddSaleDialog({
         <DialogHeader>
           <DialogTitle>Record a sale</DialogTitle>
           <DialogDescription>
-            Creates a completed walk-in booking and a linked sale entry. Pick from
-            the catalog or type a new customer / item.
+            Creates a completed booking and a linked sale entry. Pick from the
+            catalog or type a new customer / item.
           </DialogDescription>
         </DialogHeader>
 
@@ -293,6 +298,22 @@ export function AddSaleDialog({
                 onChange={(e) => setDate(e.target.value)}
                 required
               />
+            </div>
+
+            <div className="space-y-1.5">
+              <Label htmlFor="service_mode">Service type</Label>
+              <Select
+                value={serviceMode}
+                onValueChange={(v) => setServiceMode(v as "walkin" | "mobile")}
+              >
+                <SelectTrigger id="service_mode">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="walkin">Walk-in</SelectItem>
+                  <SelectItem value="mobile">Mobile</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
           </div>
 
