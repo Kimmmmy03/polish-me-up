@@ -37,10 +37,19 @@ import type { Database } from "@/types/database.types";
 
 type RecordSource = Database["public"]["Enums"]["record_source"];
 
-type BookingRel =
-  | { id: string; booking_number: string | null }
-  | { id: string; booking_number: string | null }[]
+type ManicuristRel =
+  | { id: string; profiles: { full_name: string | null } | { full_name: string | null }[] | null }
+  | { id: string; profiles: { full_name: string | null } | { full_name: string | null }[] | null }[]
   | null;
+
+type Booking = {
+  id: string;
+  booking_number: string | null;
+  manicurist_id: string | null;
+  manicurists: ManicuristRel;
+};
+
+type BookingRel = Booking | Booking[] | null;
 
 export type SalesRow = {
   id: string;
@@ -66,10 +75,26 @@ function formatDate(value: string): string {
   return dateFormatter.format(new Date(`${value}T00:00:00`));
 }
 
-function pickBooking(row: SalesRow): { id: string; booking_number: string | null } | null {
+function pickBooking(row: SalesRow): Booking | null {
   if (!row.bookings) return null;
   if (Array.isArray(row.bookings)) return row.bookings[0] ?? null;
   return row.bookings;
+}
+
+function pickBookingManicuristId(row: SalesRow): string | null {
+  return pickBooking(row)?.manicurist_id ?? null;
+}
+
+function pickManicuristName(row: SalesRow): string {
+  const booking = pickBooking(row);
+  const m = booking
+    ? Array.isArray(booking.manicurists)
+      ? booking.manicurists[0]
+      : booking.manicurists
+    : null;
+  if (!m) return "-";
+  const profile = Array.isArray(m.profiles) ? m.profiles[0] : m.profiles;
+  return profile?.full_name ?? "Unnamed manicurist";
 }
 
 function todayISO(): string {
@@ -81,13 +106,20 @@ export function SalesView({
   sales,
   customers,
   items,
+  currentManicuristId,
 }: {
   sales: SalesRow[];
   customers: CustomerOption[];
   items: ItemOption[];
+  currentManicuristId: string | null;
 }) {
   const router = useRouter();
   const [sourceFilter, setSourceFilter] = React.useState<RecordSource | "all">("all");
+  // Default to "mine" when we know the current manicurist; otherwise show all
+  // so the page still surfaces something useful.
+  const [manicuristScope, setManicuristScope] = React.useState<"mine" | "all">(
+    currentManicuristId ? "mine" : "all",
+  );
   const [dateFrom, setDateFrom] = React.useState<string>("");
   const [dateTo, setDateTo] = React.useState<string>("");
   const [mobileFiltersOpen, setMobileFiltersOpen] = React.useState(false);
@@ -112,12 +144,18 @@ export function SalesView({
 
   const filtered = React.useMemo(() => {
     return sales.filter((s) => {
+      if (
+        manicuristScope === "mine" &&
+        currentManicuristId &&
+        pickBookingManicuristId(s) !== currentManicuristId
+      )
+        return false;
       if (sourceFilter !== "all" && s.source !== sourceFilter) return false;
       if (dateFrom && s.date < dateFrom) return false;
       if (dateTo && s.date > dateTo) return false;
       return true;
     });
-  }, [sales, sourceFilter, dateFrom, dateTo]);
+  }, [sales, manicuristScope, currentManicuristId, sourceFilter, dateFrom, dateTo]);
 
   const summary = React.useMemo(() => {
     const totalNet = filtered.reduce(
@@ -139,6 +177,7 @@ export function SalesView({
       return {
         date: s.date,
         booking_number: booking?.booking_number ?? "",
+        manicurist: pickManicuristName(s),
         gross_sales: Number(s.gross_sales ?? 0),
         discounts: Number(s.discounts ?? 0),
         refunds: Number(s.refunds ?? 0),
@@ -151,6 +190,7 @@ export function SalesView({
     exportToCSV(rows, `sales-${todayISO()}.csv`, [
       { key: "date", label: "Date" },
       { key: "booking_number", label: "Booking #" },
+      { key: "manicurist", label: "Manicurist" },
       { key: "gross_sales", label: "Gross Sales" },
       { key: "discounts", label: "Discounts" },
       { key: "refunds", label: "Refunds" },
@@ -184,6 +224,13 @@ export function SalesView({
           </Link>
         );
       },
+    },
+    {
+      key: "manicurist",
+      header: "Manicurist",
+      cell: (row) => (
+        <span className="text-sm text-[#3D1A2A]">{pickManicuristName(row)}</span>
+      ),
     },
     {
       key: "gross_sales",
@@ -247,9 +294,17 @@ export function SalesView({
     },
   ];
 
-  const filtersActive = sourceFilter !== "all" || dateFrom || dateTo;
+  // Scope counts as "active" only when flipped away from the account default.
+  const defaultScope: "mine" | "all" = currentManicuristId ? "mine" : "all";
+  const scopeIsCustom = manicuristScope !== defaultScope;
+
+  const filtersActive =
+    sourceFilter !== "all" || scopeIsCustom || dateFrom || dateTo;
   const activeFilterCount =
-    (sourceFilter !== "all" ? 1 : 0) + (dateFrom ? 1 : 0) + (dateTo ? 1 : 0);
+    (sourceFilter !== "all" ? 1 : 0) +
+    (scopeIsCustom ? 1 : 0) +
+    (dateFrom ? 1 : 0) +
+    (dateTo ? 1 : 0);
 
   return (
     <div className="space-y-6">
@@ -340,6 +395,26 @@ export function SalesView({
               </Select>
             </div>
 
+            {currentManicuristId && (
+              <div className="space-y-1.5">
+                <label className="block text-xs font-medium tracking-wide text-[#5C2D48]">
+                  Manicurist
+                </label>
+                <Select
+                  value={manicuristScope}
+                  onValueChange={(v) => setManicuristScope(v as "mine" | "all")}
+                >
+                  <SelectTrigger className="w-full sm:w-44">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="mine">My sales</SelectItem>
+                    <SelectItem value="all">All manicurists</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
+
             <div className="space-y-1.5">
               <label className="block text-xs font-medium tracking-wide text-[#5C2D48]">
                 From
@@ -372,6 +447,7 @@ export function SalesView({
                 className="col-span-2 sm:col-span-1"
                 onClick={() => {
                   setSourceFilter("all");
+                  setManicuristScope(defaultScope);
                   setDateFrom("");
                   setDateTo("");
                 }}
@@ -423,6 +499,9 @@ export function SalesView({
                   ) : (
                     <p className="font-mono text-xs text-[#5C2D48]/50">-</p>
                   )}
+                  <p className="mt-0.5 truncate text-xs text-[#5C2D48]/70">
+                    {pickManicuristName(row)}
+                  </p>
                 </div>
                 <span className="pmu-animated-gradient-text shrink-0 text-lg font-bold tracking-tight">
                   {formatMYR(Number(row.net_sales ?? 0))}

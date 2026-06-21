@@ -19,9 +19,9 @@ export default async function SalesPage() {
     .maybeSingle();
   const manicuristId = manicuristRow?.id ?? null;
 
-  // Sales are scoped via their backing booking's manicurist_id. Using
-  // bookings!inner with a column filter keeps the SQL on the server and
-  // returns only rows that match.
+  // Fetch every sale and let the client scope to "Mine" vs "All manicurists"
+  // (mirrors the Bookings page). Each sale carries its booking's manicurist +
+  // name so the view can filter by, and label, the owning manicurist.
   const salesQuery = supabase
     .from("sales")
     .select(
@@ -35,17 +35,12 @@ export default async function SalesPage() {
        gross_profit,
        source,
        booking_id,
-       bookings!inner ( id, booking_number, manicurist_id )`,
+       bookings!inner ( id, booking_number, manicurist_id, manicurists ( id, profiles ( full_name ) ) )`,
     )
     .order("date", { ascending: false });
 
-  const scopedSalesQuery = manicuristId
-    ? salesQuery.eq("bookings.manicurist_id", manicuristId)
-    : // No manicurist row yet → show nothing, don't leak peers.
-      salesQuery.eq("bookings.manicurist_id", "00000000-0000-0000-0000-000000000000");
-
   const [salesRes, customersRes, itemsRes] = await Promise.all([
-    scopedSalesQuery,
+    salesQuery,
     supabase
       .from("customers")
       .select("id, full_name, phone")
@@ -76,7 +71,12 @@ export default async function SalesPage() {
           Failed to load sales: {salesRes.error.message}
         </p>
       ) : (
-        <SalesView sales={sales} customers={customers} items={items} />
+        <SalesView
+          sales={sales}
+          customers={customers}
+          items={items}
+          currentManicuristId={manicuristId}
+        />
       )}
     </div>
   );
