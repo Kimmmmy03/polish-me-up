@@ -49,8 +49,16 @@ export async function checkRateLimit(
   if (!limiter) {
     return { ok: true, remaining: Number.POSITIVE_INFINITY, reset: 0 };
   }
-  const res = await limiter.limit(identifier);
-  return { ok: res.success, remaining: res.remaining, reset: res.reset };
+  try {
+    const res = await limiter.limit(identifier);
+    return { ok: res.success, remaining: res.remaining, reset: res.reset };
+  } catch (err) {
+    // Fail open: a Redis outage, network error, or bad/rotated Upstash token
+    // must not take down the action it's protecting. Log so the misconfig is
+    // still visible (Sentry/Vercel), but let the request through.
+    console.error("Rate limit check failed; allowing request:", err);
+    return { ok: true, remaining: Number.POSITIVE_INFINITY, reset: 0 };
+  }
 }
 
 export function rateLimitError(kind: LimitKind): string {
